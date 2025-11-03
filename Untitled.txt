@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GameZoneW</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1a1a1a, #444);
+      color: white;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #222;
+      padding: 20px;
+      font-size: 2em;
+      font-weight: bold;
+    }
+    .games {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 50px;
+    }
+    .game-btn {
+      background: #ff5722;
+      color: white;
+      text-decoration: none;
+      padding: 15px 40px;
+      margin: 15px;
+      border-radius: 10px;
+      font-size: 1.3em;
+      transition: background 0.3s;
+    }
+    .game-btn:hover {
+      background: #e64a19;
+    }
+    footer {
+      margin-top: 50px;
+      font-size: 0.8em;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <header>🎮 Welcome to GameZoneW 🎮</header>
+
+  <div class="games">
+    <a href="retrobowl.html" class="game-btn">Play Retro Bowl</a>
+    <a href="animalhorizons.html" class="game-btn">Play Animal Horizons</a>
+    <a href="pokemon.html" class="game-btn">Play Pokémon</a>
+    <a href="https://lagged.com/en/g/world-builder" target="_blank" class="game-btn">Play Roblox-Style Sandbox</a>
+  </div>
+
+  <footer>
+    © 2025 GameZoneW | Made for fun
+  </footer>
+</body>
+</html>
