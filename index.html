@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GameZoneW — Extended Mini Games Hub</title>
+<style>
+:root{
+  --bg:#0f1720; --accent:#ff6b35; --muted:#9aa6b2;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:
+  linear-gradient(180deg,#061019,#0f1720);color:#eaf2fb;-webkit-font-smoothing:antialiased;
+}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.03)}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#ff9a66);display:flex;align-items:center;justify-content:center;color:#071018;font-weight:800}
+h1{margin:0;font-size:18px}
+nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button.tab{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
+button.tab.active{background:linear-gradient(90deg,rgba(255,255,255,0.03),rgba(255,255,255,0.02));color:#fff;box-shadow:0 8px 22px rgba(0,0,0,0.45)}
+main{max-width:1180px;margin:20px auto;padding:0 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{background:rgba(255,255,255,0.02);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);min-height:150px;display:flex;flex-direction:column;justify-content:space-between}
+.card h3{margin:0 0 8px 0}
+.card p{margin:0 0 12px;color:var(--muted);font-size:13px}
+.play-btn{background:var(--accent);color:#071018;padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:800}
+#game-area{margin-top:18px;background:rgba(0,0,0,0.35);border-radius:12px;padding:12px;min-height:520px;display:flex;align-items:center;justify-content:center}
+canvas{background:#071018;border-radius:8px;max-width:100%}
+.instructions{color:var(--muted);font-size:13px;margin-top:6px}
+.small{font-size:12px;color:var(--muted)}
+footer{padding:14px;text-align:center;color:var(--muted);font-size:13px;margin-bottom:20px}
+@media (max-width:520px){header{padding:10px} .logo{width:40px;height:40px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">GZ</div><div><h1>GameZoneW</h1><div class="small">Extended Hub — School-safe</div></div></div>
+  <nav id="top-controls" aria-label="games"></nav>
+</header>
+
+<main>
+  <section id="game-list" class="grid"></section>
+  <div id="game-area" aria-live="polite">
+    <div style="text-align:center;color:var(--muted)"><div style="font-size:20px">Select a game to play</div>
+    <div class="instructions">All games are small, original HTML5 mini-games that run in your browser.</div></div>
+  </div>
+</main>
+
+<footer>© 2025 GameZoneW — Built for school & fun</footer>
+
+<script>
+/* ---------- GAME LIST ---------- */
+const games = [
+  {id:'sandbox', title:'Block Builder', desc:'Place/remove blocks to build your world.', init:initSandbox},
+  {id:'brawl', title:'Arena Brawl', desc:'Top-down arena: move, dash, tag targets.', init:initBrawl},
+  {id:'clash', title:'Card Clash', desc:'Spawn units to push the lane.', init:initClash},
+  {id:'shooter', title:'Target Ops', desc:'Click targets to score.', init:initShooter},
+  {id:'build', title:'Build & Survive', desc:'Collect resources and dodge projectiles.', init:initBuildSurvive},
+  {id:'rocket', title:'Rocket Soccer', desc:'Drive and hit the ball into the goal.', init:initRocket},
+  {id:'madden', title:'Gridiron Lite', desc:'Quick play: choose pass/run/kick.', init:initMadden},
+  {id:'obstacle', title:'Obstacle Rush', desc:'Race across moving obstacles to the finish.', init:initObstacleRush}
+];
+
+const gameListElement = document.getElementById('game-list');
+const topControls = document.getElementById('top-controls');
+const area = document.getElementById('game-area');
+
+games.forEach(g=>{
+  const card = document.createElement('div'); card.className='card';
+  card.innerHTML = `<div><h3>${g.title}</h3><p>${g.desc}</p></div>
+    <div style="display:flex;align-items:center;justify-content:space-between"><button class="play-btn" data-game="${g.id}">Play</button><div class="small">Mini</div></div>`;
+  gameListElement.appendChild(card);
+  const tab = document.createElement('button'); tab.className='tab'; tab.textContent=g.title;
+  tab.onclick = ()=>startGame(g.id); topControls.appendChild(tab);
+});
+document.querySelectorAll('.play-btn').forEach(b=>b.addEventListener('click', e=>startGame(e.currentTarget.dataset.game)));
+
+let currentCleanup = null;
+function clearArea(){ area.innerHTML=''; if(currentCleanup) try{ currentCleanup(); }catch(e){console.warn(e)} currentCleanup=null; document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); }
+function startGame(id){
+  clearArea();
+  const idx = games.findIndex(x=>x.id===id);
+  if(topControls.children[idx]) topControls.children[idx].classList.add('active');
+  const wrap = document.createElement('div'); wrap.style.width='100%'; area.appendChild(wrap);
+  currentCleanup = games[idx].init(wrap) || null;
+}
+
+/* ---------- utilities ---------- */
+function createCanvas(parent,w=760,h=420){ parent.innerHTML=''; const c=document.createElement('canvas'); c.width=w; c.height=h; c.style.maxWidth='100%'; parent.appendChild(c); return {canvas:c,ctx:c.getContext('2d')}; }
+
+/* ---------- BLOCK BUILDER (sandbox) ---------- */
+function initSandbox(parent){
+  const {canvas,ctx} = createCanvas(parent,760,420);
+  const cols=16, rows=10, cell=40;
+  const grid = Array(rows*cols).fill(0);
+  const ui=document.createElement('div'); ui.style.marginTop='8px';
+  ui.innerHTML=`<div class="small">Tap to toggle blocks. Use Clear to reset. <button id="clear" class="play-btn">Clear</button></div>`;
+  parent.appendChild(ui);
+  ui.querySelector('#clear').onclick = ()=>{ for(let i=0;i<grid.length;i++) grid[i]=0; };
+  canvas.addEventListener('click',(e)=>{ const r=canvas.getBoundingClientRect(); const mx=e.clientX-r.left, my=e.clientY-r.top; const c=Math.floor(mx/cell), rr=Math.floor(my/cell); if(c>=0&&c<cols&&rr>=0&&rr<rows){ const idx=rr*cols+c; grid[idx]=grid[idx]?0:1; }});
+  function draw(){ ctx.fillStyle='#071018'; ctx.fillRect(0,0,canvas.width,canvas.height); for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){ const v=grid[y*cols+x]; ctx.fillStyle = v? '#72c26b' : '#071018'; ctx.fillRect(x*cell+1,y*cell+1,cell-2,cell-2); ctx.strokeStyle='rgba(255,255,255,0.02)'; ctx.strokeRect(x*cell+1,y*cell+1,cell-2,cell-2); } requestAnimationFrame(draw); } draw();
+  return ()=>{};
+}
+
+/* ---------- BRAWL ARENA (top-down) ---------- */
+function initBrawl(parent){
+  const {canvas,ctx} = createCanvas(parent,760,420);
+  const player = {x:380,y:210,r:14,score:0};
+  const bots = [];
+  for(let i=0;i<5;i++) bots.push({x:80+Math.random()*600,y:60+Math.random()*300,r:12, hp:2});
+  const keys = {}, dashCooldown={t:0};
+  window.addEventListener('keydown',e=>keys[e.key]=true); window.addEventListener('keyup',e=>keys[e.key]=false);
+  canvas.addEventListener('click',()=>{ // dash/attack
+    if(dashCooldown.t<=0){
+      for(let i=bots.length-1;i>=0;i--){
+        const b=bots[i]; if(Math.hypot(b.x-player.x,b.y-player.y) < 40){ b.hp--; if(b.hp<=0){ bots.splice(i,1); player.score++; } }
+      }
+      dashCooldown.t = 40;
+    }
+  });
+  function step(){
+    if(keys['a']||keys['ArrowLeft']) player.x-=3; if(keys['d']||keys['ArrowRight']) player.x+=3;
+    if(keys['w']||keys['ArrowUp']) player.y-=3; if(keys['s']||keys['ArrowDown']) player.y+=3;
+    // bots chase slowly
+    for(let b of bots){ const ang=Math.atan2(player.y-b.y, player.x-b.x); b.x += Math.cos(ang)*1.2; b.y += Math.sin(ang)*1.2; }
+    if(dashCooldown.t>0) dashCooldown.t--;
+    ctx.fillStyle='#071018'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    // arena
+    ctx.fillStyle='#0b2a18'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    // draw bots
+    for(let b of bots){ ctx.beginPath(); ctx.fillStyle='#ff5577'; ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill(); }
+    // player
+    ctx.beginPath(); ctx.fillStyle='#ffb86b'; ctx.arc(player.x,player.y,player.r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.fillText('Eliminations: '+player.score,10,20);
+    requestAnimationFrame(step);
+  }
+  step();
+  return ()=>{};
+}
+
+/* ---------- CLASH-STYLE (lane push) ---------- */
+function initClash(parent){
+  const {canvas,ctx} = createCanvas(parent,760,
