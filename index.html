@@ -1,229 +1,248 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GameZoneW – Extended Mini Games</title>
-  <style>
-    :root {
-      --bg: #0f1720;
-      --accent: #ff6b35;
-      --muted: #9ca3af;
-    }
-
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: linear-gradient(180deg, #061019, #0f1720);
-      color: white;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      align-items: center;
-    }
-
-    header {
-      text-align: center;
-      padding: 20px;
-    }
-
-    h1 {
-      font-size: 24px;
-      color: var(--accent);
-    }
-
-    main {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 100%;
-      max-width: 900px;
-    }
-
-    #game-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      width: 100%;
-      margin-bottom: 30px;
-      padding: 10px;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      padding: 12px;
-      text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      transition: transform 0.2s;
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-    }
-
-    .play-btn {
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 8px 12px;
-      margin-top: 8px;
-      cursor: pointer;
-    }
-
-    canvas {
-      background: #071018;
-      border: 1px solid #222;
-      margin-top: 20px;
-    }
-
-    footer {
-      margin-top: auto;
-      padding: 20px;
-      text-align: center;
-      color: var(--muted);
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GameZoneW — Play!</title>
+<style>
+  :root{--bg:#0f1720;--muted:#9ca3af;--accent:#ff6b35}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+       background:linear-gradient(180deg,#061019,#0f1720);color:#fff;min-height:100vh;
+       display:flex;flex-direction:column;align-items:center}
+  header{padding:18px 12px;text-align:center}
+  h1{margin:0 0 6px;font-size:24px;color:var(--accent)}
+  main{width:100%;max-width:980px;padding:12px}
+  #game-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+             gap:14px;margin:10px 0 22px}
+  .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+        padding:12px;border-radius:10px;text-align:center;transition:transform .2s}
+  .card:hover{transform:translateY(-3px)}
+  .play-btn{background:var(--accent);color:#fff;border:0;border-radius:8px;
+            padding:8px 12px;margin-top:8px;cursor:pointer}
+  #game-area{display:flex;justify-content:center}
+  canvas{background:#071018;border:1px solid #223;margin:0 auto;max-width:100%;
+         touch-action:none}
+  footer{margin-top:auto;color:var(--muted);padding:16px;text-align:center}
+  small{color:var(--muted)}
+</style>
 </head>
-
 <body>
-  <header>
-    <h1>🎮 GameZoneW – Mini Games Collection</h1>
-    <p>Tap a game to play instantly below!</p>
-  </header>
+<header>
+  <h1>🎮 GameZoneW</h1>
+  <p>Tap a game to play. Works on Chromebook, phone, or desktop.</p>
+  <small>Controls: Snake (WASD/Arrows) • Pong (Up/Down) • Flappy (Space/Click) • Breakout (←/→)</small>
+</header>
 
-  <main>
-    <section id="game-list"></section>
-    <section id="game-area"></section>
-  </main>
+<main>
+  <section id="game-list"></section>
+  <section id="game-area" aria-live="polite"></section>
+</main>
 
-  <footer>© 2025 GameZoneW – Built for fun!</footer>
+<footer>© 2025 GameZoneW</footer>
 
-  <script>
-    /* ---------- GAME LIST ---------- */
-    const games = [
-      { id: 'sandbox', title: 'Block Builder' },
-      { id: 'brawl', title: 'Arena Brawl' },
-      { id: 'clash', title: 'Card Clash' },
-      { id: 'shooter', title: 'Target Ops' },
-      { id: 'build', title: 'Build & Survive' },
-      { id: 'rocket', title: 'Rocket Soccer' },
-      { id: 'madden', title: 'Gridiron Lite' },
-      { id: 'obstacle', title: 'Obstacle Run' },
-    ];
+<script>
+/* ---------- helpers ---------- */
+const listEl = document.getElementById('game-list');
+const area = document.getElementById('game-area');
+function createCanvas(w=800,h=500){const c=document.createElement('canvas');c.width=w;c.height=h;area.appendChild(c);return {c,ctx:c.getContext('2d')}}
+let cleanup = ()=>{};
 
-    const gameList = document.getElementById("game-list");
-    const area = document.getElementById("game-area");
-    let currentCleanup = null;
+/* ---------- menu ---------- */
+const games = [
+  {id:'snake',   title:'🐍 Snake'},
+  {id:'pong',    title:'🏓 Pong'},
+  {id:'flappy',  title:'🐤 Flappy'},
+  {id:'breakout',title:'🧱 Breakout'}
+];
 
-    // Create clickable cards for each game
-    games.forEach(g => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = `<h3>${g.title}</h3><button class="play-btn">Play</button>`;
-      card.querySelector(".play-btn").onclick = () => startGame(g.id);
-      gameList.appendChild(card);
-    });
+games.forEach(g=>{
+  const card=document.createElement('div');card.className='card';
+  card.innerHTML=`<h3>${g.title}</h3><button class="play-btn">Play</button>`;
+  card.querySelector('.play-btn').onclick=()=>start(g.id);
+  listEl.appendChild(card);
+});
 
-    // Clear game area before loading new one
-    function clearArea() {
-      area.innerHTML = "";
-      if (currentCleanup) currentCleanup();
-      currentCleanup = null;
+function start(id){
+  // clear previous
+  area.innerHTML=''; cleanup(); cleanup=()=>{};
+  // route
+  if(id==='snake') cleanup=initSnake();
+  else if(id==='pong') cleanup=initPong();
+  else if(id==='flappy') cleanup=initFlappy();
+  else if(id==='breakout') cleanup=initBreakout();
+}
+
+/* ---------- SNAKE ---------- */
+function initSnake(){
+  const {c,ctx}=createCanvas(640,480);
+  const grid=20, cols=c.width/grid, rows=c.height/grid;
+  let snake=[{x:10,y:10}], dir={x:1,y:0}, apple=randPos(), alive=true, score=0, t=0;
+  function randPos(){return {x:Math.floor(Math.random()*cols),y:Math.floor(Math.random()*rows)}}
+  function key(e){
+    const k=e.key.toLowerCase();
+    if((k==='arrowup'||k==='w')&&dir.y!==1)dir={x:0,y:-1};
+    if((k==='arrowdown'||k==='s')&&dir.y!==-1)dir={x:0,y:1};
+    if((k==='arrowleft'||k==='a')&&dir.x!==1)dir={x:-1,y:0};
+    if((k==='arrowright'||k==='d')&&dir.x!==-1)dir={x:1,y:0};
+  }
+  window.addEventListener('keydown',key);
+
+  function step(ts){
+    if(!alive) return;
+    if(ts-t>100){ // speed
+      t=ts;
+      const head={x:(snake[0].x+dir.x+cols)%cols, y:(snake[0].y+dir.y+rows)%rows};
+      // collision with self
+      if(snake.some(p=>p.x===head.x&&p.y===head.y)) alive=false;
+      snake.unshift(head);
+      if(head.x===apple.x&&head.y===apple.y){score++; apple=randPos();}
+      else snake.pop();
     }
+    // draw
+    ctx.fillStyle='#071018';ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle='#0fa'; snake.forEach(p=>ctx.fillRect(p.x*grid,p.y*grid,grid-1,grid-1));
+    ctx.fillStyle='#f55'; ctx.fillRect(apple.x*grid,apple.y*grid,grid-1,grid-1);
+    ctx.fillStyle='#fff'; ctx.fillText('Score: '+score,10,16);
+    if(alive) requestAnimationFrame(step); else gameOver('Snake');
+  }
+  requestAnimationFrame(step);
 
-    function createCanvas(parent, w = 800, h = 600) {
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      parent.appendChild(canvas);
-      const ctx = canvas.getContext("2d");
-      return { canvas, ctx };
+  function gameOver(name){
+    ctx.fillStyle='#fff';ctx.font='28px system-ui';ctx.fillText(name+' — Game Over', 170, 230);
+  }
+  return ()=>window.removeEventListener('keydown',key);
+}
+
+/* ---------- PONG ---------- */
+function initPong(){
+  const {c,ctx}=createCanvas(800,500);
+  let ball={x:400,y:250,vx:4,vy:3,r:8};
+  const paddleH=80,padW=10;
+  let left={y:210,up:false,down:false}, right={y:210}, scoreL=0, scoreR=0, raf;
+
+  function key(e,down=true){
+    if(e.key==='ArrowUp') right.y-=down?14:0;
+    if(e.key==='ArrowDown') right.y+=down?14:0;
+    if(e.key==='w') left.up=down;
+    if(e.key==='s') left.down=down;
+  }
+  const kd=e=>key(e,true), ku=e=>key(e,false);
+  window.addEventListener('keydown',kd); window.addEventListener('keyup',ku);
+
+  function loop(){
+    // player move
+    if(left.up) left.y-=6; if(left.down) left.y+=6;
+    left.y=Math.max(0,Math.min(c.height-paddleH,left.y));
+    // simple AI to track ball
+    right.y+= (ball.y-(right.y+paddleH/2))*0.08;
+    right.y=Math.max(0,Math.min(c.height-paddleH,right.y));
+
+    // move ball
+    ball.x+=ball.vx; ball.y+=ball.vy;
+    if(ball.y<ball.r||ball.y>c.height-ball.r) ball.vy*=-1;
+
+    // collide paddles
+    if(ball.x-ball.r<padW && ball.y>left.y && ball.y<left.y+paddleH){ ball.vx=Math.abs(ball.vx); }
+    if(ball.x+ball.r>c.width-padW && ball.y>right.y && ball.y<right.y+paddleH){ ball.vx=-Math.abs(ball.vx); }
+
+    // score
+    if(ball.x<0){ scoreR++; reset(); }
+    if(ball.x>c.width){ scoreL++; reset(); }
+
+    // draw
+    ctx.fillStyle='#071018';ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle='#fff';ctx.fillRect(0,left.y,padW,paddleH);
+    ctx.fillRect(c.width-padW,right.y,padW,paddleH);
+    ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
+    ctx.fillText(`${scoreL} : ${scoreR}`, c.width/2-12, 20);
+
+    raf=requestAnimationFrame(loop);
+  }
+  function reset(){ ball={x:400,y:250,vx:(Math.random()<.5?-4:4),vy:(Math.random()<.5?-3:3),r:8};}
+  loop();
+  return ()=>{ cancelAnimationFrame(raf); window.removeEventListener('keydown',kd); window.removeEventListener('keyup',ku); };
+}
+
+/* ---------- FLAPPY ---------- */
+function initFlappy(){
+  const {c,ctx}=createCanvas(400,600);
+  let y=250, vy=0, gravity=0.4, pipes=[], score=0, alive=true, raf;
+  function addPipe(){ const gap=140, top=60+Math.random()*260; pipes.push({x:c.width,top:top,b:top+gap}); }
+  function flap(){ vy=-7; }
+  c.addEventListener('mousedown',flap); window.addEventListener('keydown',e=>{if(e.code==='Space')flap();});
+  for(let i=0;i<4;i++){ addPipe(); pipes[pipes.length-1].x+=i*180; }
+
+  function loop(){
+    if(!alive) return;
+    vy+=gravity; y+=vy;
+    if(y<0||y>c.height) alive=false;
+
+    // move pipes
+    pipes.forEach(p=>p.x-=2);
+    if(pipes[0].x<-60){ pipes.shift(); addPipe(); score++; }
+
+    // collision
+    const p=pipes[0];
+    if(60>p.x && 60<p.x+60 && (y<p.top || y>p.b)) alive=false;
+
+    // draw
+    ctx.fillStyle='#071018';ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle='#0fa';ctx.fillRect(50,y,24,24);
+    ctx.fillStyle='#6cf';pipes.forEach(p=>{ctx.fillRect(p.x,0,60,p.top);ctx.fillRect(p.x,p.b,60,c.height-p.b);});
+    ctx.fillStyle='#fff';ctx.fillText('Score: '+score,10,18);
+
+    if(alive) raf=requestAnimationFrame(loop); else over();
+  }
+  function over(){ ctx.fillStyle='#fff';ctx.font='26px system-ui';ctx.fillText('Flappy — Game Over',85,300); }
+  loop();
+
+  return ()=>{ cancelAnimationFrame(raf); c.replaceWith(c.cloneNode(true)); };
+}
+
+/* ---------- BREAKOUT ---------- */
+function initBreakout(){
+  const {c,ctx}=createCanvas(800,500);
+  let ball={x:400,y:300,vx:4,vy:-4,r:7}, paddle={x:360,w:80,h:12}, left=false,right=false, raf;
+  const rows=5, cols=10, bw=70, bh=18, offX=35, offY=50;
+  const bricks=[]; for(let r=0;r<rows;r++)for(let i=0;i<cols;i++)bricks.push({x:offX+i*(bw+6),y:offY+r*(bh+6),hit:false});
+  function kd(e){ if(e.key==='ArrowLeft') left=true; if(e.key==='ArrowRight') right=true; }
+  function ku(e){ if(e.key==='ArrowLeft') left=false; if(e.key==='ArrowRight') right=false; }
+  window.addEventListener('keydown',kd); window.addEventListener('keyup',ku);
+
+  function loop(){
+    if(left) paddle.x-=7; if(right) paddle.x+=7;
+    paddle.x=Math.max(0,Math.min(c.width-paddle.w,paddle.x));
+    ball.x+=ball.vx; ball.y+=ball.vy;
+
+    if(ball.x<ball.r||ball.x>c.width-ball.r) ball.vx*=-1;
+    if(ball.y<ball.r) ball.vy*=-1;
+    // paddle
+    if(ball.y+ball.r>c.height-20 && ball.x>paddle.x && ball.x<paddle.x+paddle.w && ball.vy>0){
+      ball.vy*=-1;
     }
-
-    // Start a game by ID
-    function startGame(id) {
-      clearArea();
-      const wrap = document.createElement("div");
-      area.appendChild(wrap);
-      const game = games.find(g => g.id === id);
-      if (!game) return;
-
-      // Match the ID with the corresponding init function
-      switch (id) {
-        case "sandbox": currentCleanup = initSandbox(wrap); break;
-        case "brawl": currentCleanup = initBrawl(wrap); break;
-        case "clash": currentCleanup = initClash(wrap); break;
-        default:
-          wrap.innerHTML = "<p>Game coming soon!</p>";
+    // bricks
+    for(const b of bricks){
+      if(!b.hit && ball.x>b.x && ball.x<b.x+bw && ball.y>b.y && ball.y<b.y+bh){
+        b.hit=true; ball.vy*=-1; break;
       }
     }
+    // lose
+    if(ball.y>c.height+20){ ctx.fillStyle='#fff';ctx.font='26px system-ui';ctx.fillText('Breakout — Game Over',260,250); cancelAnimationFrame(raf); return; }
 
-    /* ---------- SAMPLE GAME 1 ---------- */
-    function initSandbox(parent) {
-      const { canvas, ctx } = createCanvas(parent);
-      ctx.fillStyle = "#ff6b35";
-      ctx.font = "24px system-ui";
-      ctx.fillText("🧱 Block Builder – Click to place blocks!", 80, 100);
+    // draw
+    ctx.fillStyle='#071018';ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle='#fff';ctx.fillRect(paddle.x,c.height-20,paddle.w,paddle.h);
+    ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
+    bricks.forEach(b=>{ if(!b.hit){ ctx.fillStyle='#ff6b35'; ctx.fillRect(b.x,b.y,bw,bh); }});
 
-      const blocks = [];
-      canvas.addEventListener("click", e => {
-        blocks.push({ x: e.offsetX, y: e.offsetY });
-        draw();
-      });
+    raf=requestAnimationFrame(loop);
+  }
+  loop();
+  return ()=>{ cancelAnimationFrame(raf); window.removeEventListener('keydown',kd); window.removeEventListener('keyup',ku); };
+}
 
-      function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#ff6b35";
-        ctx.fillText("🧱 Block Builder – Click to place blocks!", 80, 100);
-        ctx.fillStyle = "#00ffcc";
-        blocks.forEach(b => ctx.fillRect(b.x - 5, b.y - 5, 10, 10));
-      }
-
-      return () => {};
-    }
-
-    /* ---------- SAMPLE GAME 2 ---------- */
-    function initBrawl(parent) {
-      const { canvas, ctx } = createCanvas(parent);
-      let player = { x: 400, y: 300, size: 15 };
-      const keys = {};
-      window.addEventListener("keydown", e => keys[e.key] = true);
-      window.addEventListener("keyup", e => keys[e.key] = false);
-
-      function loop() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#b22222";
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (keys["ArrowUp"]) player.y -= 4;
-        if (keys["ArrowDown"]) player.y += 4;
-        if (keys["ArrowLeft"]) player.x -= 4;
-        if (keys["ArrowRight"]) player.x += 4;
-
-        requestAnimationFrame(loop);
-      }
-      loop();
-      return () => {};
-    }
-
-    /* ---------- SAMPLE GAME 3 ---------- */
-    function initClash(parent) {
-      const { canvas, ctx } = createCanvas(parent);
-      ctx.fillStyle = "#f0f";
-      ctx.font = "24px system-ui";
-      ctx.fillText("🃏 Card Clash – Coming soon!", 250, 300);
-      return () => {};
-    }
-
-    // Automatically show the list when the page loads
-    window.onload = () => {
-      document.getElementById("game-list").style.display = "grid";
-    };
-  </script>
+/* auto-show menu; optionally autostart a game by calling start('snake') */
+</script>
 </body>
 </html>
